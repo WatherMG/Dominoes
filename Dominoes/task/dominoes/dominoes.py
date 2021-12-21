@@ -102,22 +102,20 @@ def add_domino_to_snake(choice, dominos):
                         domino_snake.insert(0, dominos.pop(verify_move(choice, dominos)))
                     else:
                         domino_snake.insert(0, dominos.pop(abs(choice) - 1))
-                    break
+                    running = False
                 elif choice == 0:
                     if len(stock_pieces) > 0:
                         random.shuffle(stock_pieces)
                         dominos.append(stock_pieces.pop())
-                        break
+                        running = False
                     else:
-                        status = status_set.get(5)
-                        #print("Stock is out of stock. You skip move.")
-                        break
+                        raise KeyError
                 else:
                     if status == status_set.get(1):
                         domino_snake.append(dominos.pop(verify_move(choice, dominos)))
                     else:
                         domino_snake.append(dominos.pop(abs(choice) - 1))
-                    break
+                    running = False
             else:
                 raise ValueError
         except ValueError:
@@ -128,6 +126,14 @@ def add_domino_to_snake(choice, dominos):
             print("Illegal move. Please try again.")
             choice = input()
             continue
+        except KeyError:
+            status = status_set.get(5)
+            running = False
+    else:
+        if status == status_set.get(1):
+            status = status_set.get(2)
+        elif status == status_set.get(2):
+            status = status_set.get(1)
 
 
 def player_move():
@@ -159,7 +165,9 @@ def get_high_score():
 
 def check_states():
     global status
-    if len(player_dominoes) == 0:
+    if (len(player_dominoes) > 0 and len(cpu_dominoes) > 0) and status == status_set.get(5):
+        return False
+    elif len(player_dominoes) == 0:
         status = status_set.get(3)
         return False
     elif len(cpu_dominoes) == 0:
@@ -190,13 +198,9 @@ def main():
         interface()
         if status == status_set.get(1):
             player_move()
-            status = status_set.get(2)
         elif status == status_set.get(2):
             input()
             cpu_move()
-            status = status_set.get(1)
-        else:
-            break
     interface()
 
 
