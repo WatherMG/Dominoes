@@ -65,8 +65,9 @@ def interface():
     print(f"Stock size: {len(stock_pieces)}")
     print(f"Computer pieces: {len(cpu_dominoes)}\n")
     display_domino_snake()
-    print(f"Your pieces:", *[f'{i}:{domino}' for i, domino in
-                             enumerate(player_dominoes, 1)], sep="\n")
+    if player_dominoes:
+        print(f"Your pieces:", *[f'{i}:{domino}' for i, domino in
+                                 enumerate(player_dominoes, 1)], sep="\n")
     print(game_status(status))
 
 
@@ -89,30 +90,18 @@ def verify_move(choice, dominos):
         return None
 
 
-def validate_player(status_, cpu_excludes):
-    if status_ == status_set.get(1):
-        return input()
-    else:
-        choice = cpu_rand_choice()
-        while choice in cpu_excludes and cpu_dominoes:
-            choice = cpu_rand_choice()
-        return choice
-
-
-def cpu_rand_choice():
-    return random.randint(-len(cpu_dominoes), len(cpu_dominoes))
-
-
-def side_of_the_snake(choice, dominos):
+def add_domino_to_snake(choice, dominos):
     global status
-    cpu_choices = set()
-    count = 0
-    while True:
+    running = True
+    while running:
         try:
             choice = int(choice)
             if abs(choice) <= len(dominos) != 0:
                 if choice < 0:
-                    domino_snake.insert(0, dominos.pop(verify_move(choice, dominos)))
+                    if status == status_set.get(1):
+                        domino_snake.insert(0, dominos.pop(verify_move(choice, dominos)))
+                    else:
+                        domino_snake.insert(0, dominos.pop(abs(choice) - 1))
                     break
                 elif choice == 0:
                     if len(stock_pieces) > 0:
@@ -120,37 +109,52 @@ def side_of_the_snake(choice, dominos):
                         dominos.append(stock_pieces.pop())
                         break
                     else:
-                        raise ValueError
+                        status = status_set.get(5)
+                        #print("Stock is out of stock. You skip move.")
+                        break
                 else:
-                    domino_snake.append(dominos.pop(verify_move(choice, dominos)))
+                    if status == status_set.get(1):
+                        domino_snake.append(dominos.pop(verify_move(choice, dominos)))
+                    else:
+                        domino_snake.append(dominos.pop(abs(choice) - 1))
                     break
             else:
                 raise ValueError
         except ValueError:
-            if status == status_set.get(1) and count == 0:
-                print("Invalid input. Please try again.")
-            if count > 0:
-                status = status_set.get(5)
-                break
-            count += 1
-            choice = validate_player(status, cpu_choices)
+            print("Invalid input. Please try again.")
+            choice = input()
             continue
         except TypeError:
-            if status == status_set.get(2):
-                cpu_choices.add(choice)
-            else:
-                print("Illegal move. Please try again.")
-            choice = validate_player(status, cpu_choices)
+            print("Illegal move. Please try again.")
+            choice = input()
             continue
 
 
 def player_move():
-    side_of_the_snake(input(), player_dominoes)
+    add_domino_to_snake(input(), player_dominoes)
 
 
 def cpu_move():
-    count = len(cpu_dominoes)
-    side_of_the_snake(random.randint(-count, count), cpu_dominoes)
+    add_domino_to_snake(get_high_score(), cpu_dominoes)
+
+
+def get_high_score():
+    total_dominoes = cpu_dominoes + domino_snake
+    dominoes_count = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+    for value in total_dominoes:
+        dominoes_count[value[0]] += 1
+        dominoes_count[value[1]] += 1
+    total_score = {}
+    for index, value in enumerate(cpu_dominoes):
+        total_score[index + 1] = dominoes_count.get(value[0]) + dominoes_count.get(value[1])
+    while len(total_score):
+        high_score_index = (max(total_score, key=total_score.get))
+        if verify_move(high_score_index, cpu_dominoes):
+            return high_score_index
+        elif verify_move(-high_score_index, cpu_dominoes):
+            return -high_score_index
+        del total_score[high_score_index]
+    return 0
 
 
 def check_states():
@@ -191,6 +195,8 @@ def main():
             input()
             cpu_move()
             status = status_set.get(1)
+        else:
+            break
     interface()
 
 
